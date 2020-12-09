@@ -8,19 +8,26 @@ var session = require('express-session');
 var MongoStore = require('connect-mongo')(session);
 var passport = require('passport');
 var LocalStrategy = require('passport-local').Strategy;
+
 var Users = require('./models/users');
-var indexRouter = require('./routes/index');
-var usersRouter = require('./routes/users');
-var apiUsersRouter = require('./routes/api/users');
-var apiAuthRouter = require('./routes/api/auth');
+var Articles = require('./models/articles');
+
 var authRouter = require('./routes/auth');
+var indexRouter = require('./routes/index');
+var articlesRouter = require('./routes/articles');
+var usersRouter = require('./routes/users');
+var apiAuthRouter = require('./routes/api/auth');
+var apiUsersRouter = require('./routes/api/users');
+var apiArticlesRouter = require('./routes/api/articles');
 
 var app = express();
 
-// Call the config file
+//Call the config file
 var config = require('./config.dev');
+// //Test the file
+// console.log(config);
 
-// Connect to MongoDB
+//Connect to MongoDB
 mongoose.connect(config.mongodb, { useNewUrlParser: true });
 
 // view engine setup
@@ -49,6 +56,7 @@ app.use(require('express-session')({
     //secure: true,
     maxAge:3600000 //1 hour
   }
+
 }));
 app.use(passport.initialize());
 app.use(passport.session());
@@ -68,6 +76,20 @@ passport.deserializeUser(function(user, done){
   done(null, user);
 });
 
+//Set up CORS
+app.use(function(req, res, next) {
+  res.header('Access-Control-Allow-Credentials', true);
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept');
+  if ('OPTIONS' == req.method) {
+    res.send(200);
+  } else {
+    next();
+  }
+});
+
+//Working with Session Data
 app.use(function(req,res,next){
   res.locals.session = req.session;
   next();
@@ -76,14 +98,15 @@ app.use(function(req,res,next){
 //Session-based access control
 app.use(function(req,res,next){
   //Uncomment the following line to allow access to everything.
-  //return next();
+//return next();
 
   //Allow any endpoint that is an exact match. The server does not
   //have access to the hash so /auth and /auth#xxx would bot be considered 
   //exact matches.
   var whitelist = [
     '/',
-    '/auth'
+    '/auth',
+    '/articles'
   ];
 
   //req.url holds the current URL
@@ -98,7 +121,9 @@ app.use(function(req,res,next){
   //Allow access to dynamic endpoints
   var subs = [
     '/public/',
-    '/api/auth/'
+    '/api/auth/',
+    '/articles',
+    '/ionicUsers'
   ];
 
   //The query string provides a partial URL match beginning
@@ -120,11 +145,14 @@ app.use(function(req,res,next){
   return res.redirect('/auth#login');
 });
 
+//Routes
 app.use('/', indexRouter);
-app.use('/users', usersRouter);
-app.use('/api/users', apiUsersRouter);
-app.use('/api/auth', apiAuthRouter);
 app.use('/auth', authRouter);
+app.use('/users', usersRouter);
+app.use('/articles', articlesRouter);
+app.use('/api/auth', apiAuthRouter);
+app.use('/api/users', apiUsersRouter);
+app.use('/api/articles', apiArticlesRouter);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
