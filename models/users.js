@@ -30,6 +30,12 @@ var Users = new Schema({
   }
 });
 
+Users.pre('save', function(next){
+  this.modified = new Date().toISOString();
+  next();
+});
+
+
 //Add unique validation properties to the model
 Users.plugin(uniqueValidator);
 
